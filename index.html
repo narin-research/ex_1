@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="엑셀 센서 데이터를 브라우저 안에서만 분석하는 로컬 대시보드">
+  <title>센서 데이터 분석 대시보드</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1527'/%3E%3Cpath d='M10 39h9l5-16 8 28 7-34 6 22h9' fill='none' stroke='%235eead4' stroke-width='5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>Local<span>Sense</span></span>
+      </div>
+      <nav aria-label="대시보드 섹션">
+        <a class="nav-item active" href="#overview"><span>01</span>개요</a>
+        <a class="nav-item" href="#trends"><span>02</span>추세</a>
+        <a class="nav-item" href="#events"><span>03</span>이벤트</a>
+        <a class="nav-item" href="#records"><span>04</span>데이터</a>
+      </nav>
+      <div class="privacy-card">
+        <div class="privacy-icon" aria-hidden="true">⌁</div>
+        <strong>로컬 전용</strong>
+        <p>파일은 브라우저 메모리에서만 처리되며 외부 서버로 전송되지 않습니다.</p>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar" id="overview">
+        <div>
+          <p class="eyebrow">SENSOR OPERATIONS / LOCAL ANALYTICS</p>
+          <h1>센서 데이터 분석</h1>
+          <p class="subtitle" id="fileSummary">엑셀 파일을 선택하면 분석을 시작합니다.</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn secondary" id="exportBtn" disabled>CSV 내보내기</button>
+          <label class="btn primary" for="fileInput">엑셀 파일 열기</label>
+          <input id="fileInput" type="file" accept=".xlsx" hidden>
+        </div>
+      </header>
+
+      <section class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="엑셀 파일을 선택하거나 끌어다 놓기">
+        <div class="drop-graphic" aria-hidden="true"><span>XL</span></div>
+        <div>
+          <strong>분석할 .xlsx 파일을 놓으세요</strong>
+          <p>파일 선택 후 모든 계산은 이 브라우저 안에서 진행됩니다.</p>
+        </div>
+        <span class="drop-status" id="dropStatus">준비</span>
+      </section>
+
+      <section class="control-strip" aria-label="분석 설정">
+        <label>시트<select id="sheetSelect" disabled></select></label>
+        <label>스무딩 창<select id="windowSelect"><option value="5">5분</option><option value="15">15분</option><option value="30">30분</option><option value="60">60분</option></select></label>
+        <label>표시 범위<select id="rangeSelect"><option value="360">최근 6시간</option><option value="720">최근 12시간</option><option value="1440" selected>전체</option></select></label>
+        <div class="legend-inline"><span class="dot raw"></span>원시값 <span class="dot smooth"></span>스무딩 <span class="dot truth"></span>참값</div>
+      </section>
+
+      <section class="kpi-grid" aria-label="핵심 지표">
+        <article class="kpi-card accent"><p>데이터 포인트</p><strong id="kpiRows">—</strong><span id="kpiPeriod">측정 범위</span></article>
+        <article class="kpi-card"><p>원시값 MAE</p><strong id="kpiRawMae">—</strong><span>참값 대비 평균 절대오차</span></article>
+        <article class="kpi-card"><p>스무딩 MAE</p><strong id="kpiSmoothMae">—</strong><span id="kpiWindow">5분 이동평균</span></article>
+        <article class="kpi-card warning"><p>이벤트 감지</p><strong id="kpiEvents">—</strong><span id="kpiEventRate">정상 외 레코드</span></article>
+      </section>
+
+      <section class="grid-main" id="trends">
+        <article class="panel chart-panel wide">
+          <div class="panel-head"><div><p class="section-kicker">TEMPERATURE</p><h2>온도 추세와 스무딩 비교</h2></div><div class="metric-badge" id="improvementBadge">오차 개선 —</div></div>
+          <div class="chart-wrap"><canvas id="temperatureChart" aria-label="원시 온도, 스무딩 온도, 참값의 시계열 차트"></canvas></div>
+        </article>
+        <article class="panel insights-panel">
+          <div class="panel-head"><div><p class="section-kicker">ANALYSIS</p><h2>핵심 분석</h2></div></div>
+          <div id="insightList" class="insight-list"><p class="empty-copy">파일을 불러오면 데이터 기반 분석이 표시됩니다.</p></div>
+        </article>
+      </section>
+
+      <section class="grid-secondary" id="events">
+        <article class="panel">
+          <div class="panel-head"><div><p class="section-kicker">MULTIVARIATE</p><h2>센서 동시 변화</h2></div><span class="panel-note">표준화 지수</span></div>
+          <div class="chart-wrap compact"><canvas id="multiChart" aria-label="온도, 진동, 압력의 표준화 시계열 차트"></canvas></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><p class="section-kicker">EVENTS</p><h2>이벤트 분포</h2></div><span class="panel-note" id="eventCountLabel">0개 유형</span></div>
+          <div class="event-bars" id="eventBars"><p class="empty-copy">표시할 이벤트가 없습니다.</p></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><p class="section-kicker">ERROR TEST</p><h2>창 크기별 오차</h2></div><span class="panel-note">MAE, °C</span></div>
+          <div class="chart-wrap compact"><canvas id="errorChart" aria-label="이동평균 창 크기별 평균 절대오차 막대 차트"></canvas></div>
+        </article>
+      </section>
+
+      <section class="panel records-panel" id="records">
+        <div class="panel-head records-head">
+          <div><p class="section-kicker">REVIEW</p><h2>오차가 큰 측정값</h2></div>
+          <label class="search-field"><span class="sr-only">이벤트 검색</span><input id="tableSearch" type="search" placeholder="이벤트 검색"></label>
+        </div>
+        <div class="table-scroll">
+          <table><thead><tr><th>측정시각</th><th>원시 온도</th><th>참값</th><th>절대오차</th><th>진동 RMS</th><th>압력</th><th>이벤트</th></tr></thead><tbody id="recordsBody"><tr><td colspan="7" class="empty-cell">파일을 불러오면 상위 오차 측정값이 표시됩니다.</td></tr></tbody></table>
+        </div>
+      </section>
+
+      <footer><span id="footerStatus">데이터를 불러오지 않았습니다.</span><span>외부 전송 없음 · 브라우저 로컬 연산</span></footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
